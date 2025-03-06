@@ -5,6 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tank Arcade Game</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+        #p5_loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #0066ff;
+            font-family: monospace;
+            font-size: 24px;
+            text-shadow: 0 0 10px #0066ff;
+        }
+    </style>
 </head>
 <body>
     <div id="p5_loading">Initializing AI Core...</div>
@@ -23,6 +39,13 @@
                     document.head.appendChild(script);
                 }
             }, 1000); // Give it a second to load
+        });
+        
+        // Ensure audio context is started on user interaction
+        window.addEventListener('click', function() {
+            if (typeof getAudioContext === 'function') {
+                getAudioContext().resume();
+            }
         });
     </script>
     

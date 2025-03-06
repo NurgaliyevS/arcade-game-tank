@@ -42,7 +42,9 @@ let soundButton = { x: 750, y: 20, width: 30, height: 30 };
 window.addEventListener("click", function () {
   if (typeof getAudioContext === "function") {
     getAudioContext().resume();
-    soundEnabled = true;
+    if (!soundEnabled) {
+      setupSound();
+    }
   }
 });
 
@@ -50,7 +52,14 @@ function setup() {
   createCanvas(1000, 600); // Increased width to accommodate leaderboard
   angleMode(DEGREES);
 
-  setupSound();
+  // Try to setup sound but don't block game initialization if it fails
+  try {
+    setupSound();
+  } catch (e) {
+    console.error("Initial sound setup failed:", e);
+    // We'll try again on user interaction
+  }
+  
   resetGame();
   fetchLeaderboard();
   
@@ -61,9 +70,24 @@ function setup() {
 function setupSound() {
   try {
     console.log("Setting up sound system...");
-    getAudioContext().resume();
+    
+    // Make sure audio context is created and resumed
+    if (typeof getAudioContext === "function") {
+      let audioContext = getAudioContext();
+      if (audioContext.state !== "running") {
+        audioContext.resume();
+      }
+    }
     
     soundEnabled = true;
+    
+    // Clean up any existing oscillators
+    if (laserOsc) laserOsc.stop();
+    if (explosionOsc) explosionOsc.stop();
+    if (thrusterOsc) thrusterOsc.stop();
+    if (rotationOsc) rotationOsc.stop();
+    if (brakeOsc) brakeOsc.stop();
+    if (gameOverOsc) gameOverOsc.stop();
     
     // Laser sound oscillator
     laserOsc = new p5.Oscillator("square");
@@ -106,16 +130,25 @@ function setupSound() {
         playTestSound();
       }, 1000);
     }
+    
+    return true;
   } catch (e) {
     console.error("Sound system initialization failed:", e);
     soundEnabled = false;
-    // Create a visual indicator that sound failed to load
-    let soundStatus = createDiv('Sound system unavailable');
-    soundStatus.position(10, 10);
-    soundStatus.style('color', 'red');
-    soundStatus.style('font-family', 'Arial');
-    soundStatus.style('background-color', 'rgba(0,0,0,0.5)');
-    soundStatus.style('padding', '5px');
+    
+    // Try to load alternative sound library
+    console.log("Attempting to load alternative sound library...");
+    if (typeof p5.Sound === 'undefined') {
+      let script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/p5/lib/addons/p5.sound.min.js';
+      script.onload = function() {
+        console.log("Alternative sound library loaded, retrying setup...");
+        setTimeout(setupSound, 500);
+      };
+      document.head.appendChild(script);
+    }
+    
+    return false;
   }
 }
 
