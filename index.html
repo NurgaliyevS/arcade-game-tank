@@ -5,58 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tank Arcade Game</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Load p5.js from CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.js"></script>
 </head>
 <body>
     <div id="p5_loading">Initializing AI Core...</div>
     
-    <!-- Sound loading with fallbacks -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/addons/p5.sound.min.js"></script>
+    <!-- Fallback for p5.sound if CDN fails -->
     <script>
-        // Function to load p5.sound with fallbacks
-        function loadP5Sound() {
-            return new Promise((resolve, reject) => {
-                // First attempt - CDNJS
-                const script1 = document.createElement('script');
-                script1.src = 'https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/addons/p5.sound.min.js';
-                script1.onload = () => {
-                    console.log('p5.sound loaded from CDNJS');
-                    resolve();
-                };
-                script1.onerror = () => {
-                    console.warn('Failed to load p5.sound from CDNJS, trying jsdelivr...');
-                    
-                    // Second attempt - jsdelivr
-                    const script2 = document.createElement('script');
-                    script2.src = 'https://cdn.jsdelivr.net/npm/p5/lib/addons/p5.sound.min.js';
-                    script2.onload = () => {
-                        console.log('p5.sound loaded from jsdelivr');
-                        resolve();
-                    };
-                    script2.onerror = () => {
-                        console.error('Failed to load p5.sound from all sources');
-                        reject(new Error('Failed to load p5.sound'));
-                    };
-                    document.head.appendChild(script2);
-                };
-                document.head.appendChild(script1);
-            });
-        }
-
-        // Load p5.sound after page loads
+        // Check if p5.Sound loaded correctly
         window.addEventListener('load', function() {
-            loadP5Sound()
-                .then(() => {
-                    console.log('p5.sound loaded successfully');
-                    // Initialize audio context if needed
-                    if (typeof p5 !== 'undefined' && typeof p5.prototype.getAudioContext === 'function') {
-                        new p5().getAudioContext().resume();
-                    }
-                })
-                .catch(err => {
-                    console.error('Error loading p5.sound:', err);
-                    alert('Could not load sound library. Some features may not work.');
-                });
+            setTimeout(function() {
+                if (typeof p5.Sound === 'undefined') {
+                    console.warn('p5.Sound not loaded from CDN, trying alternate source');
+                    var script = document.createElement('script');
+                    script.src = 'https://cdn.jsdelivr.net/npm/p5/lib/addons/p5.sound.min.js';
+                    document.head.appendChild(script);
+                }
+            }, 1000); // Give it a second to load
         });
     </script>
     

@@ -46,14 +46,6 @@ window.addEventListener("click", function () {
   }
 });
 
-// Also try to enable sound on keypress
-window.addEventListener("keydown", function () {
-  if (typeof getAudioContext === "function") {
-    getAudioContext().resume();
-    soundEnabled = true;
-  }
-});
-
 function setup() {
   createCanvas(1000, 600); // Increased width to accommodate leaderboard
   angleMode(DEGREES);
@@ -69,25 +61,7 @@ function setup() {
 function setupSound() {
   try {
     console.log("Setting up sound system...");
-    
-    // Check if p5.sound is available
-    if (typeof p5.Oscillator === 'undefined' || typeof p5.Noise === 'undefined') {
-      console.error("p5.sound library not loaded correctly");
-      soundEnabled = false;
-      return;
-    }
-    
-    // Try to initialize audio context
-    if (typeof getAudioContext === "function") {
-      let audioContext = getAudioContext();
-      if (audioContext.state !== 'running') {
-        audioContext.resume().then(() => {
-          console.log("AudioContext resumed successfully");
-        }).catch(err => {
-          console.error("Failed to resume AudioContext:", err);
-        });
-      }
-    }
+    getAudioContext().resume();
     
     soundEnabled = true;
     
