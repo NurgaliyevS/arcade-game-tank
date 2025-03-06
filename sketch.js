@@ -68,13 +68,28 @@ function setup() {
 
 function setupSound() {
   try {
+    console.log("Setting up sound system...");
+    
+    // Check if p5.sound is available
+    if (typeof p5.Oscillator === 'undefined' || typeof p5.Noise === 'undefined') {
+      console.error("p5.sound library not loaded correctly");
+      soundEnabled = false;
+      return;
+    }
+    
     // Try to initialize audio context
     if (typeof getAudioContext === "function") {
-      getAudioContext().resume();
+      let audioContext = getAudioContext();
+      if (audioContext.state !== 'running') {
+        audioContext.resume().then(() => {
+          console.log("AudioContext resumed successfully");
+        }).catch(err => {
+          console.error("Failed to resume AudioContext:", err);
+        });
+      }
     }
     
     soundEnabled = true;
-    console.log("Setting up sound system...");
     
     // Laser sound oscillator
     laserOsc = new p5.Oscillator("square");
@@ -118,17 +133,57 @@ function setupSound() {
       }, 1000);
     }
   } catch (e) {
-    console.error("Sound system not available:", e);
+    console.error("Sound system initialization failed:", e);
     soundEnabled = false;
+    // Create a visual indicator that sound failed to load
+    let soundStatus = createDiv('Sound system unavailable');
+    soundStatus.position(10, 10);
+    soundStatus.style('color', 'red');
+    soundStatus.style('font-family', 'Arial');
+    soundStatus.style('background-color', 'rgba(0,0,0,0.5)');
+    soundStatus.style('padding', '5px');
   }
 }
 
 // Play a test sound to verify sound is working
 function playTestSound() {
-  if (soundEnabled && gameOverOsc) {
-    gameOverOsc.freq(440);
-    gameOverOsc.amp(0.1, 0.1);
-    setTimeout(() => gameOverOsc.amp(0, 0.5), 300);
+  if (!soundEnabled) {
+    console.warn("Sound is disabled, cannot play test sound");
+    return;
+  }
+  
+  try {
+    console.log("Playing test sound sequence...");
+    
+    // Play a short sequence of tones to test sound
+    if (gameOverOsc) {
+      // First tone
+      gameOverOsc.freq(440); // A4
+      gameOverOsc.amp(0.2, 0.1);
+      
+      // Second tone after 300ms
+      setTimeout(() => {
+        gameOverOsc.freq(523.25); // C5
+        gameOverOsc.amp(0.2, 0.1);
+        
+        // Third tone after another 300ms
+        setTimeout(() => {
+          gameOverOsc.freq(659.25); // E5
+          gameOverOsc.amp(0.2, 0.1);
+          
+          // Fade out
+          setTimeout(() => {
+            gameOverOsc.amp(0, 0.5);
+            console.log("Test sound sequence complete");
+          }, 300);
+        }, 300);
+      }, 300);
+    } else {
+      console.error("gameOverOsc not initialized");
+    }
+  } catch (e) {
+    console.error("Error playing test sound:", e);
+    soundEnabled = false;
   }
 }
 
@@ -641,45 +696,55 @@ function drawUI() {
   text("LEVEL: " + floor(difficulty), 20, 65);
   
   // Sound toggle button
-  fill(0, 0, 0, 150);
-  rect(soundButton.x, soundButton.y, soundButton.width, soundButton.height, 5);
+  push();
+  translate(width - 50, 50);
   
+  // Button background
+  fill(50);
+  stroke(100);
+  strokeWeight(2);
+  rect(0, 0, 40, 40, 5);
+  
+  // Sound icon
   if (soundEnabled) {
-    // Speaker icon with sound waves
+    // Speaker icon with waves
     fill(0, 255, 0);
+    noStroke();
     // Speaker body
-    rect(soundButton.x + 8, soundButton.y + 10, 6, 10);
+    rect(10, 15, 5, 10);
     // Speaker cone
-    triangle(
-      soundButton.x + 14, soundButton.y + 10,
-      soundButton.x + 20, soundButton.y + 5,
-      soundButton.x + 20, soundButton.y + 25
-    );
+    beginShape();
+    vertex(15, 15);
+    vertex(22, 8);
+    vertex(22, 32);
+    vertex(15, 25);
+    endShape(CLOSE);
     // Sound waves
     noFill();
     stroke(0, 255, 0);
-    strokeWeight(1);
-    arc(soundButton.x + 20, soundButton.y + 15, 10, 10, -QUARTER_PI, QUARTER_PI);
-    arc(soundButton.x + 20, soundButton.y + 15, 15, 15, -QUARTER_PI, QUARTER_PI);
-    noStroke();
+    strokeWeight(2);
+    arc(24, 20, 10, 10, -45, 45);
+    arc(24, 20, 16, 16, -45, 45);
   } else {
     // Speaker icon with X
     fill(255, 0, 0);
+    noStroke();
     // Speaker body
-    rect(soundButton.x + 8, soundButton.y + 10, 6, 10);
+    rect(10, 15, 5, 10);
     // Speaker cone
-    triangle(
-      soundButton.x + 14, soundButton.y + 10,
-      soundButton.x + 20, soundButton.y + 5,
-      soundButton.x + 20, soundButton.y + 25
-    );
+    beginShape();
+    vertex(15, 15);
+    vertex(22, 8);
+    vertex(22, 32);
+    vertex(15, 25);
+    endShape(CLOSE);
     // X over speaker
     stroke(255, 0, 0);
-    strokeWeight(2);
-    line(soundButton.x + 5, soundButton.y + 5, soundButton.x + 25, soundButton.y + 25);
-    line(soundButton.x + 25, soundButton.y + 5, soundButton.x + 5, soundButton.y + 25);
-    noStroke();
+    strokeWeight(3);
+    line(25, 10, 35, 30);
+    line(35, 10, 25, 30);
   }
+  pop();
 }
 
 function spawnEnemy() {
@@ -1309,24 +1374,39 @@ class Explosion {
 }
 
 function mousePressed() {
+  // Check if sound toggle button was clicked
+  if (dist(mouseX, mouseY, width - 30, 50) < 20) {
+    toggleSound();
+    return false; // Prevent default
+  }
+  
   if (gameState === "playing") {
-    // Check if sound button was clicked
-    if (mouseX >= soundButton.x && mouseX <= soundButton.x + soundButton.width &&
-        mouseY >= soundButton.y && mouseY <= soundButton.y + soundButton.height) {
-      soundEnabled = !soundEnabled;
-      
-      if (soundEnabled) {
-        // Try to restart sound system
-        setupSound();
-      } else {
-        // Stop all sounds
-        stopAllSounds();
-      }
-      
-      return false; // Prevent default
-    }
-    
     player.shoot();
     return false; // Prevent default
+  }
+}
+
+function toggleSound() {
+  if (soundEnabled) {
+    // Disable sound
+    soundEnabled = false;
+    stopAllSounds();
+    console.log("Sound disabled by user");
+  } else {
+    // Try to enable sound
+    try {
+      if (typeof getAudioContext === "function") {
+        getAudioContext().resume().then(() => {
+          console.log("AudioContext resumed successfully");
+          soundEnabled = true;
+          setupSound();
+          console.log("Sound enabled by user");
+        }).catch(err => {
+          console.error("Failed to resume AudioContext:", err);
+        });
+      }
+    } catch (e) {
+      console.error("Error enabling sound:", e);
+    }
   }
 }
