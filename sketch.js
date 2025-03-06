@@ -13,14 +13,29 @@ let difficultyTimer = 0;
 let difficulty = 1;
 let sounds = {};
 
+// Leaderboard variables
+let leaderboard = [];
+let showEmailInput = false;
+let emailInput = '';
+let isSubmittingScore = false;
+let submitMessage = '';
+let submitMessageTimer = 0;
+
 // Map configuration
 const gridSize = 20;
 const mapWidth = 40;
 const mapHeight = 30;
 let gameMap = [];
 
+// Ensure audio context is started on user interaction
+window.addEventListener('click', function() {
+    if (typeof getAudioContext === 'function') {
+        getAudioContext().resume();
+    }
+});
+
 function setup() {
-  createCanvas(800, 600);
+  createCanvas(1000, 600); // Increased width to accommodate leaderboard
   angleMode(DEGREES);
   
   // Initialize sound objects
@@ -60,6 +75,7 @@ function setup() {
   };
   
   resetGame();
+  fetchLeaderboard();
 }
 
 function resetGame() {
@@ -77,6 +93,64 @@ function resetGame() {
   spawnTimer = 0;
   difficultyTimer = 0;
   difficulty = 1;
+  showEmailInput = false;
+  emailInput = '';
+  isSubmittingScore = false;
+  submitMessage = '';
+  submitMessageTimer = 0;
+}
+
+// Fetch leaderboard data from our API
+function fetchLeaderboard() {
+  const apiUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') 
+      ? 'http://localhost:3000/api/leaderboard' 
+      : window.location.origin + '/api/leaderboard';
+      
+  fetch(apiUrl)
+      .then(response => response.json())
+      .then(data => {
+          leaderboard = data;
+          console.log('Leaderboard data loaded:', data);
+      })
+      .catch(error => {
+          console.error('Error fetching leaderboard:', error);
+      });
+}
+
+// Submit score to the leaderboard
+function submitScore(email, score) {
+  isSubmittingScore = true;
+  
+  const apiUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') 
+      ? 'http://localhost:3000/api/submit-score' 
+      : window.location.origin + '/api/submit-score';
+      
+  fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, score }),
+  })
+      .then(response => response.json())
+      .then(data => {
+          isSubmittingScore = false;
+          submitMessage = data.message || 'Score submitted!';
+          submitMessageTimer = 120; // Show message for 2 seconds
+          fetchLeaderboard(); // Refresh leaderboard
+      })
+      .catch(error => {
+          console.error('Error submitting score:', error);
+          isSubmittingScore = false;
+          submitMessage = 'Error submitting score';
+          submitMessageTimer = 120;
+      });
+}
+
+// Add this function to check if email is valid
+function isValidEmail(email) {
+  // Simple email validation - must contain @ and at least one dot after @
+  return email.includes('@') && email.indexOf('.', email.indexOf('@')) > email.indexOf('@');
 }
 
 function createMap() {
@@ -127,6 +201,15 @@ function draw() {
   } else if (gameState === "gameOver") {
     drawGameOverScreen();
   }
+  
+  // Show submit message if needed
+  if (submitMessageTimer > 0) {
+    fill(255);
+    textAlign(CENTER);
+    textSize(20);
+    text(submitMessage, width/2, height - 50);
+    submitMessageTimer--;
+  }
 }
 
 function drawStartScreen() {
@@ -139,6 +222,9 @@ function drawStartScreen() {
   text("WASD or Arrow Keys to move", width / 2, height / 2 - 20);
   text("Mouse to aim, Click to shoot", width / 2, height / 2 + 10);
   text("Press ENTER to start", width / 2, height / 2 + 60);
+  
+  // Draw leaderboard
+  drawLeaderboard();
 }
 
 function drawGameOverScreen() {
@@ -150,8 +236,85 @@ function drawGameOverScreen() {
   textSize(30);
   text("Score: " + score, width / 2, height / 2);
   
+  // Email input for leaderboard
+  if (showEmailInput) {
+    // Draw input box background
+    fill(0, 50, 100);
+    rect(width/2 - 150, height/2 + 40, 300, 40, 5);
+    
+    // Draw input box border
+    strokeWeight(2);
+    stroke(0, 150, 255);
+    noFill();
+    rect(width/2 - 150, height/2 + 40, 300, 40, 5);
+    
+    // Draw email text with cursor
+    fill(255);
+    textAlign(CENTER, CENTER);
+    textSize(18);
+    noStroke();
+    text(emailInput + (frameCount % 60 < 30 ? "" : ""), width/2, height/2 + 60);
+    
+    // Show validation status
+    if (emailInput.length > 0) {
+      if (isValidEmail(emailInput)) {
+        fill(0, 255, 0);
+        text("✓", width/2 + 160, height/2 + 60);
+      } else {
+        fill(255, 0, 0);
+        text("✗", width/2 + 160, height/2 + 60);
+      }
+    }
+    
+    // Instructions
+    textSize(14);
+    fill(0, 200, 255);
+    text("Enter your email and press ENTER", width/2, height/2 + 100);
+    text("Press ESC to cancel", width/2, height/2 + 120);
+    
+    if (isSubmittingScore) {
+      fill(255);
+      textSize(16);
+      text("Submitting score...", width/2, height/2 + 150);
+    }
+  } else {
+    textSize(20);
+    text("Press ENTER to restart", width / 2, height / 2 + 60);
+    text("Press E to submit score", width / 2, height / 2 + 90);
+  }
+  
+  // Draw leaderboard
+  drawLeaderboard();
+}
+
+// Draw leaderboard
+function drawLeaderboard() {
+  // Draw leaderboard background
+  fill(0, 50, 100, 150);
+  rect(800, 0, 200, height);
+  
+  // Draw leaderboard title
+  fill(0, 200, 255);
   textSize(20);
-  text("Press ENTER to restart", width / 2, height / 2 + 60);
+  textAlign(CENTER);
+  text("LEADERBOARD", 900, 30);
+  
+  // Draw leaderboard entries
+  fill(255);
+  textSize(16);
+  textAlign(LEFT);
+  for (let i = 0; i < leaderboard.length && i < 10; i++) {
+    let entry = leaderboard[i];
+    // Only show the part before @ symbol
+    let displayEmail = entry.email.split('@')[0];
+    if (displayEmail.length > 12) {
+      displayEmail = displayEmail.substring(0, 9) + '...';
+    }
+    text(`${i+1}. ${displayEmail}`, 820, 70 + i * 30);
+    textAlign(RIGHT);
+    text(entry.score, 980, 70 + i * 30);
+    textAlign(LEFT);
+  }
 }
 
 function updateGame() {
@@ -210,6 +373,7 @@ function updateGame() {
     createExplosion(player.x, player.y);
     sounds.explosion.play();
     gameState = "gameOver";
+    showEmailInput = true; // Automatically show email input when game over
   }
 }
 
@@ -237,6 +401,9 @@ function drawGame() {
   
   // Draw UI
   drawUI();
+  
+  // Draw leaderboard
+  drawLeaderboard();
 }
 
 function drawMap() {
@@ -328,10 +495,40 @@ function createExplosion(x, y) {
 function keyPressed() {
   if (gameState === "start" && (keyCode === ENTER || keyCode === RETURN)) {
     gameState = "playing";
-  } else if (gameState === "gameOver" && (keyCode === ENTER || keyCode === RETURN)) {
-    resetGame();
-    gameState = "playing";
+  } else if (gameState === "gameOver") {
+    if ((keyCode === ENTER || keyCode === RETURN)) {
+      if (showEmailInput && isValidEmail(emailInput)) {
+        // Submit score
+        submitScore(emailInput, score);
+        showEmailInput = false;
+      } else if (!showEmailInput) {
+        resetGame();
+        gameState = "playing";
+      }
+    } else if (keyCode === 69 && !showEmailInput) { // 'E' key
+      // Show email input
+      showEmailInput = true;
+      emailInput = '';
+    } else if (keyCode === ESCAPE && showEmailInput) {
+      // Cancel email input
+      showEmailInput = false;
+    } else if (keyCode === BACKSPACE && showEmailInput) {
+      // Handle backspace
+      emailInput = emailInput.slice(0, -1);
+    }
   }
+}
+
+// Add keyTyped function for better character handling
+function keyTyped() {
+  if (gameState === "gameOver" && showEmailInput && emailInput.length < 30) {
+    // This captures the actual typed character including dots
+    if (key.length === 1 && key !== 'e' && key !== 'E') { // Prevent 'e' from being added (since it's used to show the input)
+      emailInput += key;
+    }
+    return false; // Prevent default behavior
+  }
+  return true;
 }
 
 // Base Tank class
