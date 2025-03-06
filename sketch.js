@@ -523,7 +523,7 @@ function keyPressed() {
 function keyTyped() {
   if (gameState === "gameOver" && showEmailInput && emailInput.length < 30) {
     // This captures the actual typed character including dots
-    if (key.length === 1 && key !== 'e' && key !== 'E') { // Prevent 'e' from being added (since it's used to show the input)
+    if (key.length === 1) {
       emailInput += key;
     }
     return false; // Prevent default behavior
