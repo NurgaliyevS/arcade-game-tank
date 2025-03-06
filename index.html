@@ -21,6 +21,19 @@
             text-shadow: 0 0 10px #0066ff;
         }
     </style>
+    <!-- Patch AudioWorklet before anything loads -->
+    <script>
+        // Fix for AudioWorklet issues in some browsers
+        window.AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (window.AudioContext && !window.AudioContext.prototype.audioWorklet) {
+            console.log("Patching missing AudioWorklet");
+            window.AudioContext.prototype.audioWorklet = {
+                addModule: function() {
+                    return Promise.resolve();
+                }
+            };
+        }
+    </script>
 </head>
 <body>
     <div id="p5_loading">Initializing AI Core...</div>
@@ -28,81 +41,66 @@
     <!-- Load p5.js first -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
     
-    <!-- Load p5.sound before the game script -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/addons/p5.sound.min.js"></script>
-    
     <!-- Sound initialization script -->
     <script>
-        // Global flag to track sound availability
+        // Global flag for sound
         window.soundEnabled = true;
         
-        // Patch p5.Oscillator if it's not available
-        window.addEventListener('load', function() {
-            // Check if p5.sound loaded correctly
-            if (typeof p5.Oscillator !== 'function') {
-                console.warn('p5.Oscillator not available, trying to load alternative p5.sound');
-                window.soundEnabled = false;
+        // Patch AudioWorklet if needed
+        function patchAudioWorklet() {
+            try {
+                // Create a test audio context
+                const testContext = new (window.AudioContext || window.webkitAudioContext)();
                 
-                // Try alternative source
-                var altScript = document.createElement('script');
-                altScript.src = 'https://cdn.jsdelivr.net/npm/p5/lib/addons/p5.sound.min.js';
-                altScript.onload = function() {
-                    console.log('Alternative p5.sound loaded');
-                    // Check again if p5.Oscillator is now available
-                    if (typeof p5.Oscillator === 'function') {
-                        window.soundEnabled = true;
-                    } else {
-                        console.error('p5.Oscillator still not available after loading alternative source');
-                        // Create dummy sound objects to prevent errors
-                        createDummySoundObjects();
+                // Check if audioWorklet exists and patch if needed
+                if (!testContext.audioWorklet) {
+                    console.warn("AudioWorklet not supported in this browser, applying patch");
+                    testContext.audioWorklet = {
+                        addModule: function() {
+                            return Promise.resolve();
+                        }
+                    };
+                    
+                    // Also patch AudioWorklet globally
+                    if (!window.AudioWorklet) {
+                        window.AudioWorklet = function() {};
                     }
-                };
-                altScript.onerror = function() {
-                    console.error('Failed to load alternative p5.sound');
-                    createDummySoundObjects();
-                };
-                document.head.appendChild(altScript);
-            }
-        });
-        
-        // Create dummy sound objects to prevent errors if sound fails to load
-        function createDummySoundObjects() {
-            console.log('Creating dummy sound objects');
-            
-            // Create dummy classes for sound objects
-            if (typeof p5.Oscillator !== 'function') {
-                p5.Oscillator = function() {
-                    return {
-                        amp: function() { return this; },
-                        freq: function() { return this; },
-                        start: function() { return this; },
-                        stop: function() { return this; }
-                    };
-                };
-            }
-            
-            if (typeof p5.Noise !== 'function') {
-                p5.Noise = function() {
-                    return {
-                        amp: function() { return this; },
-                        start: function() { return this; },
-                        stop: function() { return this; }
-                    };
-                };
+                }
+                
+                // Close test context
+                testContext.close();
+                return true;
+            } catch (e) {
+                console.error("Error patching AudioWorklet:", e);
+                return false;
             }
         }
         
+        // Apply patch before loading p5.sound
+        patchAudioWorklet();
+        
         // Global error handler for sound-related errors
         window.addEventListener('error', function(e) {
-            if (e.message && (e.message.includes('p5.sound') || e.message.includes('audioWorklet') || 
-                             e.message.includes('Oscillator') || e.message.includes('AudioContext'))) {
+            if (e.message && (e.message.includes('addModule') || 
+                             e.message.includes('audioWorklet') || 
+                             e.message.includes('AudioContext'))) {
                 console.warn('Sound-related error caught:', e.message);
-                window.soundEnabled = false;
                 e.preventDefault();
                 e.stopPropagation();
                 return true;
             }
         }, true);
+        
+        // Also catch unhandled promise rejections (common with audioWorklet)
+        window.addEventListener('unhandledrejection', function(event) {
+            if (event.reason && 
+                (String(event.reason).includes('addModule') || 
+                 String(event.reason).includes('audioWorklet'))) {
+                console.warn('Caught unhandled promise rejection:', event.reason);
+                event.preventDefault();
+                return true;
+            }
+        });
         
         // Resume audio context on user interaction
         window.addEventListener('click', function() {
@@ -116,7 +114,10 @@
         });
     </script>
     
-    <!-- Load game script after sound initialization -->
+    <!-- Load p5.sound after patching -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/addons/p5.sound.min.js"></script>
+    
+    <!-- Load game script last -->
     <script src="sketch.js"></script>
 </body>
 </html>
