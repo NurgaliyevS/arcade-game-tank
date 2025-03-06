@@ -25,30 +25,98 @@
 <body>
     <div id="p5_loading">Initializing AI Core...</div>
     
+    <!-- Load p5.js first -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    
+    <!-- Load p5.sound before the game script -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/addons/p5.sound.min.js"></script>
-    <!-- Fallback for p5.sound if CDN fails -->
+    
+    <!-- Sound initialization script -->
     <script>
-        // Check if p5.Sound loaded correctly
+        // Global flag to track sound availability
+        window.soundEnabled = true;
+        
+        // Patch p5.Oscillator if it's not available
         window.addEventListener('load', function() {
-            setTimeout(function() {
-                if (typeof p5.Sound === 'undefined') {
-                    console.warn('p5.Sound not loaded from CDN, trying alternate source');
-                    var script = document.createElement('script');
-                    script.src = 'https://cdn.jsdelivr.net/npm/p5/lib/addons/p5.sound.min.js';
-                    document.head.appendChild(script);
-                }
-            }, 1000); // Give it a second to load
+            // Check if p5.sound loaded correctly
+            if (typeof p5.Oscillator !== 'function') {
+                console.warn('p5.Oscillator not available, trying to load alternative p5.sound');
+                window.soundEnabled = false;
+                
+                // Try alternative source
+                var altScript = document.createElement('script');
+                altScript.src = 'https://cdn.jsdelivr.net/npm/p5/lib/addons/p5.sound.min.js';
+                altScript.onload = function() {
+                    console.log('Alternative p5.sound loaded');
+                    // Check again if p5.Oscillator is now available
+                    if (typeof p5.Oscillator === 'function') {
+                        window.soundEnabled = true;
+                    } else {
+                        console.error('p5.Oscillator still not available after loading alternative source');
+                        // Create dummy sound objects to prevent errors
+                        createDummySoundObjects();
+                    }
+                };
+                altScript.onerror = function() {
+                    console.error('Failed to load alternative p5.sound');
+                    createDummySoundObjects();
+                };
+                document.head.appendChild(altScript);
+            }
         });
         
-        // Ensure audio context is started on user interaction
+        // Create dummy sound objects to prevent errors if sound fails to load
+        function createDummySoundObjects() {
+            console.log('Creating dummy sound objects');
+            
+            // Create dummy classes for sound objects
+            if (typeof p5.Oscillator !== 'function') {
+                p5.Oscillator = function() {
+                    return {
+                        amp: function() { return this; },
+                        freq: function() { return this; },
+                        start: function() { return this; },
+                        stop: function() { return this; }
+                    };
+                };
+            }
+            
+            if (typeof p5.Noise !== 'function') {
+                p5.Noise = function() {
+                    return {
+                        amp: function() { return this; },
+                        start: function() { return this; },
+                        stop: function() { return this; }
+                    };
+                };
+            }
+        }
+        
+        // Global error handler for sound-related errors
+        window.addEventListener('error', function(e) {
+            if (e.message && (e.message.includes('p5.sound') || e.message.includes('audioWorklet') || 
+                             e.message.includes('Oscillator') || e.message.includes('AudioContext'))) {
+                console.warn('Sound-related error caught:', e.message);
+                window.soundEnabled = false;
+                e.preventDefault();
+                e.stopPropagation();
+                return true;
+            }
+        }, true);
+        
+        // Resume audio context on user interaction
         window.addEventListener('click', function() {
             if (typeof getAudioContext === 'function') {
-                getAudioContext().resume();
+                try {
+                    getAudioContext().resume();
+                } catch (e) {
+                    console.warn('Error resuming AudioContext:', e);
+                }
             }
         });
     </script>
     
+    <!-- Load game script after sound initialization -->
     <script src="sketch.js"></script>
 </body>
 </html>
