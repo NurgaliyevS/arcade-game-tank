@@ -9,7 +9,23 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/addons/p5.sound.min.js"></script>
 </head>
 <body>
-    <main></main>
+    <div id="p5_loading">Initializing AI Core...</div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/addons/p5.sound.min.js"></script>
+    <!-- Fallback for p5.sound if CDN fails -->
+    <script>
+        // Check if p5.Sound loaded correctly
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                if (typeof p5.Sound === 'undefined') {
+                    console.warn('p5.Sound not loaded from CDN, trying alternate source');
+                    var script = document.createElement('script');
+                    script.src = 'https://cdn.jsdelivr.net/npm/p5/lib/addons/p5.sound.min.js';
+                    document.head.appendChild(script);
+                }
+            }, 1000); // Give it a second to load
+        });
+    </script>
     <script src="sketch.js"></script>
 </body>
 </html>

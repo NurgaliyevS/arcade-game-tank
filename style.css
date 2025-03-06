@@ -1,15 +1,27 @@
-html, body {
-    margin: 0;
-    padding: 0;
-    background-color: #1a1a1a;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    overflow: hidden;
-  }
-  
-  canvas {
-    display: block;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-  }
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #1a1a1a;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  overflow: hidden;
+}
+
+canvas {
+  display: block;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+#p5_loading {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #0066ff;
+  font-family: monospace;
+  font-size: 24px;
+  text-shadow: 0 0 10px #0066ff;
+}
