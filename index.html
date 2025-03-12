@@ -3,12 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tank Arcade Game</title>
+    <title>Arcade Game Tank</title>
     <link rel="stylesheet" href="style.css">
     <style>
         body {
             margin: 0;
-            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            min-height: 100vh;
+            overflow-y: auto;
+        }
+        canvas {
+            border: 2px solid #0066ff;
+            box-shadow: 0 0 20px #0066ff;
+            margin-top: 20px;
         }
         #p5_loading {
             position: fixed;
@@ -19,6 +30,45 @@
             font-family: monospace;
             font-size: 24px;
             text-shadow: 0 0 10px #0066ff;
+        }
+        h1 {
+            color: #0066ff;
+            font-family: monospace;
+            text-align: center;
+            margin-top: 30px;
+            text-shadow: 0 0 10px #0066ff;
+        }
+        .main-footer {
+            color: #0066ff;
+            font-family: monospace;
+            text-align: center;
+            margin-top: 20px;
+            padding: 10px;
+        }
+        .main-footer a {
+            color: #00aaff;
+            text-decoration: none;
+        }
+        .main-footer a:hover {
+            text-decoration: underline;
+        }
+        .more-projects {
+            margin-top: 10px;
+        }
+        .project-links {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .p5Canvas {
+            display: block;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+            max-width: 100%;
+            height: auto;
         }
     </style>
     <!-- Patch AudioWorklet before anything loads -->
@@ -34,9 +84,25 @@
             };
         }
     </script>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-FHPL3DMVD0"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-FHPL3DMVD0');
+    </script>
 </head>
 <body>
-    <div id="p5_loading">Initializing AI Core...</div>
+    <!-- H1 Heading -->
+    <h1>Arcade Game Tank</h1>
+    
+    <!-- Game Canvas in Main -->
+    <main>
+        <div id="p5_loading">Initializing AI Core...</div>
+        <!-- Canvas will be created by p5.js and placed here -->
+    </main>
     
     <!-- Load p5.js first -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
@@ -114,10 +180,44 @@
         });
     </script>
     
+    <!-- Fallback for p5.sound if CDN fails -->
+    <script>
+        // Check if p5.Sound loaded correctly
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                if (typeof p5.Sound === 'undefined') {
+                    console.warn('p5.Sound not loaded from CDN, trying alternate source');
+                    var script = document.createElement('script');
+                    script.src = 'https://cdn.jsdelivr.net/npm/p5/lib/addons/p5.sound.min.js';
+                    document.head.appendChild(script);
+                }
+            }, 1000); // Give it a second to load
+        });
+    </script>
+    
     <!-- Load p5.sound after patching -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/addons/p5.sound.min.js"></script>
     
     <!-- Load game script last -->
     <script src="sketch.js"></script>
+    
+    <!-- Links Last -->
+    <footer class="main-footer">
+        <p>Arcade Game Tank | Made by <a href="https://x.com/tech_nurgaliyev?utm_source=tankarcadegame.com&utm_medium=referral&utm_campaign=footer" target="_blank">@tech_nurgaliyev</a></p>
+        <br>
+        <div class="more-projects">
+            <div class="project-links">
+                <a href="https://bestwebsitegames.com/" target="_blank">Best Website Games</a> |
+                <a href="https://mvpagency.org/" target="_blank">MVPAgency</a> |
+                <a href="https://pregnantmeal.com/" target="_blank">PregnantMeal</a> |
+                <a href="https://redditagency.com/" target="_blank">Reddit Agency</a> |
+                <a href="https://subpage.io/" target="_blank">SubPage</a> |
+                <a href="https://weeealth.com/" target="_blank">Weeealth</a> |
+                <a href="https://environmentaljobboards.com/" target="_blank">Environmental Job Boards</a> |
+                <a href="https://uptimefriend.com/" target="_blank">UptimeFriend</a> |
+                <a href="https://tripplanss.com/" target="_blank">TripPlanss</a>
+            </div>
+        </div>
+    </footer>
 </body>
 </html>
